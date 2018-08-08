@@ -32,17 +32,15 @@ struct variant_operation_holder_i
         
         destroy(dst);
         src_var.build(dst);
-    }
-    
+    } 
+protected:
+    virtual size_t size() const = 0;
+private:
     void build(buffer_t& dst) const
     {
         dst.resize(size());
         construct(dst);
     } 
-    
-protected:
-    virtual size_t size() const = 0;
-    virtual void construct(buffer_t& dst) const = 0;
 };
 
 template<typename T>
@@ -97,11 +95,6 @@ struct variant_operation_holder : variant_operation_holder_i
     }
 protected:
     size_t size() const override final { return sizeof(T); }
-    
-    void construct(buffer_t& dst) const override final
-    {
-        new (dst) T();
-    }
 private:
     variant_operation_holder() = default;    
     
