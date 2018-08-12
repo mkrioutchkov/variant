@@ -35,6 +35,7 @@ struct variant_operation_holder_i
     } 
 protected:
     virtual size_t size() const = 0;
+	virtual void construct(buffer_t& dst) const = 0;
 private:
     void build(buffer_t& dst) const
     {
@@ -93,9 +94,14 @@ struct variant_operation_holder : variant_operation_holder_i
             
         return stream;
     }
-protected:
-    size_t size() const override final { return sizeof(T); }
 private:
+    size_t size() const override final { return sizeof(T); }
+	
+	void construct(buffer_t& dst) const override final
+    {
+        new (dst) T();
+    }
+
     variant_operation_holder() = default;    
     
     static T& lvalue(buffer_t& p)
