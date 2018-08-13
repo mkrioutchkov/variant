@@ -24,23 +24,23 @@ struct variant_operation_holder_i
     // 1. Checks if dst and src are the same type
     // 2. If yes, then stops here
     // 3. Calls destructor at dst
-    // 4. If dst needs more space, then reallocates
-    void repurpose(buffer_t& dst, const variant_operation_holder_i& src_var) const
+    // 4. If dst needs more space, then reallocates. 
+    // 5. End result is dst has enough space but junk memory inside it
+    bool repurpose(buffer_t& dst, const variant_operation_holder_i& src_var) const
     {
         if(type_info() == src_var.type_info())
-            return; // nothing to do
+            return false;
         
         destroy(dst);
-        src_var.build(dst);
+        src_var.allocate(dst);
+        return true;
     } 
 protected:
     virtual size_t size() const = 0;
-	virtual void construct(buffer_t& dst) const = 0;
 private:
-    void build(buffer_t& dst) const
+    void allocate(buffer_t& dst) const
     {
         dst.resize(size());
-        construct(dst);
     } 
 };
 
@@ -87,8 +87,8 @@ struct variant_operation_holder : variant_operation_holder_i
        
     std::ostream& out_stream(std::ostream& stream, const buffer_t& src) const override final
     {
-        if constexpr(test_streamable<decltype(stream), decltype(src)>(bool{}))
-            stream << "streaming a " << type_info().name() << ' ' << lvalue(src);
+        if constexpr(test_streamable<decltype(stream), decltype(lvalue(src))>(bool{}))
+            stream << lvalue(src);
         else
             stream << "variant of type " << type_info().name();
             
@@ -96,12 +96,6 @@ struct variant_operation_holder : variant_operation_holder_i
     }
 private:
     size_t size() const override final { return sizeof(T); }
-	
-	void construct(buffer_t& dst) const override final
-    {
-        new (dst) T();
-    }
-
     variant_operation_holder() = default;    
     
     static T& lvalue(buffer_t& p)
@@ -120,7 +114,7 @@ private:
     }
     
     template<typename SS, typename TT>
-    static constexpr auto test_streamable(bool) -> decltype(std::declval<SS>() << std::declval<TT>()) { return true; }
+    static constexpr auto test_streamable(bool) -> decltype(((std::cout << std::declval<TT>()), bool{})) { return true; }
     
     template<typename... Args>
     static constexpr auto test_streamable(int) { return false; }
@@ -157,9 +151,16 @@ struct variant
     
     variant& operator=(variant&& other)
     {
-        m_type_info->repurpose(m_buffer, *other.m_type_info);
-        m_type_info = other.m_type_info;
-        m_type_info->move_assign(m_buffer, other.m_buffer);
+        // different types -> destroy old then move construct instead of move assign
+        // otherwise just move assign
+        if(m_type_info->repurpose(m_buffer, *other.m_type_info))
+        {
+            m_type_info = other.m_type_info;
+            m_type_info->move_construct(m_buffer, other.m_buffer);
+        }
+        else
+            m_type_info->move_assign(m_buffer, other.m_buffer);
+
         return *this;
     }
     
