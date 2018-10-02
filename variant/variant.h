@@ -70,8 +70,7 @@ struct variant_operation_holder : variant_operation_holder_i
     
     void copy_assign(buffer_t& dst, const buffer_t& src) const override final
     {
-        if constexpr(std::is_copy_assignable_v<T>)
-            lvalue(dst) = lvalue(src);
+        lvalue(dst) = lvalue(src);
     }
     
     void move_construct(buffer_t& dst, buffer_t& src) const override final
@@ -81,17 +80,15 @@ struct variant_operation_holder : variant_operation_holder_i
     
     void move_assign(buffer_t& dst, buffer_t& src) const override final
     {
-        if constexpr(std::is_move_assignable_v<T>)
-            lvalue(dst) = rvalue(src);
+        lvalue(dst) = rvalue(src);
     }
-       
+           
     std::ostream& out_stream(std::ostream& stream, const buffer_t& src) const override final
     {
         if constexpr(test_streamable<decltype(stream), decltype(lvalue(src))>(bool{}))
             stream << lvalue(src);
         else
             stream << "variant of type " << type_info().name();
-            
         return stream;
     }
 private:
@@ -201,7 +198,11 @@ private:
     buffer_t m_buffer;
 };
 
-inline std::ostream& operator<<(std::ostream& stream, const variant& var)
+// This is needed to make const VARIANT& var an explicit parameter, otherwise test_streamable doesn't work properly, at least on GCC
+// Not sure whether it's a GCC bug. Clang seems to figure out there's a recursive cycle in the SFINAE and fallback to the
+// test_streamable that returns false. GCC somehow deduces to test_streamable (true) and segfaults on recursive operator << calls
+template<typename VARIANT>
+inline std::enable_if_t<std::is_same_v<std::remove_cvref_t<VARIANT>, variant>, std::ostream&> operator<<(std::ostream& stream, const VARIANT& var)
 {
     return var.out_stream(stream);
 }

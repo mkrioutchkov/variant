@@ -31,7 +31,8 @@ struct stack_or_heap_buffer
     template<size_t ANOTHER_N>
     stack_or_heap_buffer& operator=(stack_or_heap_buffer<ANOTHER_N, T>&& other)
     {
-        move_to(other);
+        other.move_to(*this);
+        return *this;
     }
        
     void resize(const size_t sizeNeeded)
