@@ -111,7 +111,7 @@ private:
     }
     
     template<typename SS, typename TT>
-    static constexpr auto test_streamable(bool) -> decltype(((std::cout << std::declval<TT>()), bool{})) { return true; }
+    static constexpr auto test_streamable(bool) -> decltype(((std::declval<SS>() << std::declval<TT>()), bool{})) { return true; }
     
     template<typename... Args>
     static constexpr auto test_streamable(int) { return false; }
@@ -198,9 +198,9 @@ private:
     buffer_t m_buffer;
 };
 
-// This is needed to make const VARIANT& var an explicit parameter, otherwise test_streamable doesn't work properly, at least on GCC
-// Not sure whether it's a GCC bug. Clang seems to figure out there's a recursive cycle in the SFINAE and fallback to the
-// test_streamable that returns false. GCC somehow deduces to test_streamable (true) and segfaults on recursive operator << calls
+// This is needed to make const VARIANT& var an explicit parameter, otherwise test_streamable doesn't work properly on GCC
+// Might be a GCC bug as after 1 recursion cycle it should be hitting the check "typename = std::enable_if_t<!std::is_same_v<RAW_T, variant>>"
+// and is_streamable should return false (as clang does)
 template<typename VARIANT>
 inline std::enable_if_t<std::is_same_v<std::remove_cvref_t<VARIANT>, variant>, std::ostream&> operator<<(std::ostream& stream, const VARIANT& var)
 {
