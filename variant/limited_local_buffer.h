@@ -48,25 +48,25 @@ namespace mdk
 			m_capacity = std::max(m_capacity, m_size);
 		}
 
-		bool acquire(std::unique_ptr<T[]> buffer, const size_t size)
+		bool acquire(std::unique_ptr<T[]> buffer, const size_t size) noexcept
 		{
 			if (m_heapBuffer = std::move(buffer); m_heapBuffer)
 				m_capacity = m_size = size;
 			return m_heapBuffer != nullptr;
 		}
 
-		operator T*()
+		operator T*() noexcept
 		{
 			return m_heapBuffer ? m_heapBuffer.get() : m_stackBuffer;
 		}
 
-		operator const T*() const
+		operator const T*() const noexcept
 		{
 			return m_heapBuffer ? m_heapBuffer.get() : m_stackBuffer;
 		}
 
-		size_t size() const { return m_size; }
-		size_t capacity() const { return m_capacity; }
+		size_t size() const noexcept { return m_size; }
+		size_t capacity() const noexcept { return m_capacity; }
 
 		template<size_t ANOTHER_N>
 		void move_to(limited_local_buffer<ANOTHER_N, T>& other)
@@ -88,11 +88,11 @@ namespace mdk
 			std::copy(ptr(), ptr() + other.size(), static_cast<T*>(other));
 		}
 
-		auto ptr() { return static_cast<T*>(*this); }
-		auto ptr() const { return static_cast<const T*>(*this); }
+		auto ptr() noexcept { return static_cast<T*>(*this); }
+		auto ptr() const noexcept { return static_cast<const T*>(*this); }
 
 	private:
-		void reset()
+		void reset() noexcept
 		{
 			m_size = 0;
 			m_capacity = N;

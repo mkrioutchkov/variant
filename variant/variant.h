@@ -1,5 +1,6 @@
 #pragma once
 #include "limited_local_buffer.h"
+#include "type_trait_extensions.h"
 
 #include <iostream>
 #include <type_traits>
@@ -9,13 +10,9 @@ namespace mdk
 {
 	using buffer_t = limited_local_buffer<>;
 
-	// update to std:: eventually
-	template<typename T>
-	using remove_cvref_t = std::remove_const_t<std::remove_reference_t<T>>;
-
 	struct variant_operation_holder_i
 	{
-		virtual const std::type_info& type_info() const = 0;
+		virtual const std::type_info& type_info() const noexcept = 0;
 
 		virtual void destroy(buffer_t& dst) const = 0;
 
@@ -59,7 +56,7 @@ namespace mdk
 			return operations;
 		}
 
-		const std::type_info& type_info() const override final
+		const std::type_info& type_info() const noexcept override final
 		{
 			return typeid(T);
 		}
@@ -115,23 +112,16 @@ namespace mdk
 		{
 			return std::move(*reinterpret_cast<T*>(static_cast<char*>(p)));
 		}
-
-		template<typename SS, typename TT>
-		static constexpr auto test_streamable(bool) -> decltype(((std::declval<SS>() << std::declval<TT>()), bool{})) { return true; }
-
-		template<typename... Args>
-		static constexpr auto test_streamable(int) { return false; }
 	};
 
 	struct variant
 	{
 		template<typename T, typename RAW_T = remove_cvref_t<T>, typename = std::enable_if_t<!std::is_same_v<RAW_T, variant> > >
 		variant(T&& value)
-			: m_type_info(&variant_operation_holder<RAW_T>::instance()),
-			m_buffer(sizeof(RAW_T))
+			: m_type_info(&variant_operation_holder<RAW_T>::instance())
+			, m_buffer(sizeof(RAW_T))
 		{
-			static_assert(std::is_same_v<RAW_T, remove_cvref_t<T>>, "Don't explicitely pass RAW_T");
-			new (m_buffer) RAW_T(std::forward<T>(value));
+			new (m_buffer) RAW_T(std::forward<RAW_T>(value));
 		}
 
 		variant(variant&& other)
@@ -178,41 +168,40 @@ namespace mdk
 		}
 
 		template<typename T>
-		T& force_cast()
+		T& force_cast() noexcept
 		{
 			return *reinterpret_cast<T*>(m_buffer.ptr());
 		}
 
 		template<typename T>
-		const T& force_cast() const
+		const T& force_cast() const noexcept
 		{
 			return *reinterpret_cast<const T*>(m_buffer.ptr());
 		}
 
 		template<typename T>
-		operator T*()
+		T* cast() noexcept
 		{
 			return value<T>(*this);
 		}
 
 		template<typename T>
-		operator const T*() const
+		const T* cast() const noexcept
 		{
-			return value<T>(*this);
+			return value<const T>(*this);
 		}
 	private:
 		template<typename T, typename VARIANT>
-		static auto value(VARIANT& this_variant)
+		static T* value(VARIANT& this_variant) noexcept
 		{
-			using C_T = std::remove_reference_t<T>;
-			using RAW_T = std::remove_cvref_t<T>;
+			using RAW_T = remove_cvref_t<std::remove_pointer_t<T>>;
 			if (typeid(RAW_T) == this_variant.m_type_info->type_info())
-				return reinterpret_cast<C_T*>(this_variant.m_buffer.ptr());
+				return reinterpret_cast<T*>(this_variant.m_buffer.ptr());
 
-			return (C_T*) {};
+			return nullptr;
 		}
 
-		const variant_operation_holder_i* m_type_info;
+		const variant_operation_holder_i* m_type_info = nullptr;
 		buffer_t m_buffer;
 	};
 
