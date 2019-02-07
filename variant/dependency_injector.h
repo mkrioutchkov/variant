@@ -12,7 +12,7 @@ namespace mdk
 {
 	class dependency_injector
 	{
-		struct lazy_construct : std::function<void(variant&)>
+		struct lazy_construct : std::function<variant(void)>
 		{
 		};
 	public:
@@ -41,8 +41,8 @@ namespace mdk
 		template<typename T, typename TUPLE>
 		bool lazy_emplace(TUPLE tuple) noexcept
 		{
-			lazy_construct creator{ { [tuple = std::move(tuple)](variant& v) {
-				v = construct_from_tuple<T>(std::move(tuple));
+			lazy_construct creator{ { [tuple = std::move(tuple)]() -> variant {
+				return construct_from_tuple<T>(std::move(tuple));
 			}} };
 			return lazy_emplace<T>(std::move(creator));
 		}
@@ -56,19 +56,19 @@ namespace mdk
 		}
 
 		template<typename T>
-		const T* get() noexcept
+		const T* get()
 		{
-			if (auto it = m_variants.find(&typeid(T)); it != std::end(m_variants))
-			{
-				variant& v = it->second;
-				if (auto ptr = v.cast<T>())
-					return ptr;
-				// if the variant doesn't store a T, then it must be storing a function that can create a T on demand
-				auto& constructor = v.force_cast<lazy_construct>();
-				constructor(v);
-				return &v.force_cast<T>();
-			}
-			return nullptr;
+			auto it = m_variants.find(&typeid(T));
+			if (it == std::end(m_variants))
+				return nullptr;
+
+			variant& v = it->second;
+			if (auto ptr = v.cast<T>())
+				return ptr;
+			// if the variant doesn't store a T, then it must be storing a function that can create a T
+			auto& constructor = v.force_cast<lazy_construct>();
+			v = constructor();
+			return &v.force_cast<T>();
 		}
 	private:
 		std::unordered_map<const std::type_info*, variant> m_variants;

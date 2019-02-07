@@ -1,9 +1,13 @@
 #pragma once
+#include "type_trait_extensions.h"
+
 #include <algorithm>
 #include <memory>
 
 namespace mdk
 {
+	// A buffer for allocating memory on the stack; until there is no longer enough space.
+	// See variant for an example of usefulness. 
 	template<size_t N = 2048, typename T = char>
 	struct limited_local_buffer
 	{
@@ -44,14 +48,13 @@ namespace mdk
 				m_heapBuffer = std::make_unique<T[]>(sizeNeeded);
 			}
 
-			m_size = sizeNeeded;
-			m_capacity = std::max(m_capacity, m_size);
+			set_size(sizeNeeded);
 		}
 
 		bool acquire(std::unique_ptr<T[]> buffer, const size_t size) noexcept
 		{
 			if (m_heapBuffer = std::move(buffer); m_heapBuffer)
-				m_capacity = m_size = size;
+				set_size(size); //m_capacity = m_size = size;
 			return m_heapBuffer != nullptr;
 		}
 
@@ -96,6 +99,12 @@ namespace mdk
 		{
 			m_size = 0;
 			m_capacity = N;
+		}
+
+		void set_size(const size_t size) noexcept
+		{
+			m_size = size;
+			m_capacity = std::max(m_capacity, m_size);
 		}
 
 		T m_stackBuffer[N];

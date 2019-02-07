@@ -32,5 +32,5 @@ int main()
 	auto tuple = std::make_tuple(std::string("my string"));
 	injector.lazy_emplace<test_type_1>(std::move(tuple));
 	auto q3 = injector.get<test_type_1>(); 	// only at this point does test_type_1 get created
-	std::cout << "q3 address" << q3;
+	std::cout << "q3 address: " << q3;
 }
