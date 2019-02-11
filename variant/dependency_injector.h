@@ -22,6 +22,13 @@ namespace mdk
 			const char* const m_text = nullptr;
 		};
 
+        template<typename T>
+		std::pair<T&, bool> insert(T&& value) noexcept(false)
+		{
+			const auto result = m_variants.emplace(&typeid(T), T(std::forward<T>(value)));
+			return { value, result.second };
+		}
+        
 		template<typename T, typename... Args>
 		T& try_emplace(Args&&... args) noexcept(false)
 		{
