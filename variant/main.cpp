@@ -28,7 +28,7 @@ int main()
 			std::cout << "test_type_1: " << s.c_str() << std::endl;
 		}
         
-        test_type_1()
+        ~test_type_1()
         {
             std::cout << "test_type_1 was destroyed" << std::endl;
         }
