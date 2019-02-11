@@ -23,19 +23,17 @@ namespace mdk
 		};
 
         template<typename T>
-		std::pair<T&, bool> insert(T&& value) noexcept(false)
+		std::pair<T&, bool> insert(T&& value)
 		{
 			const auto result = m_variants.emplace(&typeid(T), T(std::forward<T>(value)));
 			return { value, result.second };
 		}
         
 		template<typename T, typename... Args>
-		T& try_emplace(Args&&... args) noexcept(false)
+		std::pair<T&, bool> try_emplace(Args&&... args)
 		{
 			const auto result = m_variants.emplace(&typeid(T), T(std::forward<Args>(args)...));
-			if (!result.second)
-				throw exception("emplace failed");
-			return result.first->second.template force_cast<T>();
+			return { result.first->second.template force_cast<T>(), result.second };
 		}
 
 		template<typename T>

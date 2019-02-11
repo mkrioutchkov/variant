@@ -10,12 +10,12 @@ int main()
 	};
 
 	mdk::dependency_injector injector;
-	auto& i = injector.try_emplace<int>(1);
+	auto& i = injector.try_emplace<int>(1).first;
 	std::cout << i << std::endl;
 	i = 2;
 	std::cout << *injector.force_get<int>() << std::endl;
 
-	auto& q = injector.try_emplace<test_type_0>(22);
+	auto& q = injector.try_emplace<test_type_0>(22).first;
 	std::cout << q.i << std::endl;
 
 	auto q2 = injector.get< test_type_0>();
