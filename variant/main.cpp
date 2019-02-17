@@ -42,4 +42,18 @@ int main()
     float f = 1.2;
     auto resultF = injector.insert(f);
     std::cout << "float " << resultF.first << " was inserted? " << resultF.second << std::endl;
+
+	struct base
+	{
+		int v = 7;
+	};
+
+	struct derived : base
+	{
+
+	} d{ {42} };
+
+	injector.insert<base>(d);
+	auto base_ptr = injector.get<base>();
+	std::cout << base_ptr->v << std::endl;
 }

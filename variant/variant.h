@@ -174,15 +174,15 @@ namespace mdk
 		}
 
 		template<typename T>
-		T& force_cast() noexcept
+		remove_cvref_t<T>& force_cast() noexcept
 		{
-			return *reinterpret_cast<T*>(m_buffer.ptr());
+			return *reinterpret_cast<remove_cvref_t<T>*>(m_buffer.ptr());
 		}
 
 		template<typename T>
-		const T& force_cast() const noexcept
+		const remove_cvref_t<T>& force_cast() const noexcept
 		{
-			return *reinterpret_cast<const T*>(m_buffer.ptr());
+			return *reinterpret_cast<const remove_cvref_t<T>*>(m_buffer.ptr());
 		}
 
 		template<typename T>

@@ -25,8 +25,13 @@ namespace mdk
         template<typename T>
 		std::pair<T&, bool> insert(T&& value)
 		{
-			const auto result = m_variants.emplace(&typeid(T), T(std::forward<T>(value)));
-			return { value, result.second };
+			return try_emplace<T>(std::forward<T>(value));
+		}
+
+		template<typename T>
+		std::pair<T&, bool> insert(T& value)
+		{
+			return try_emplace<T>(std::forward<T>(value));
 		}
         
 		template<typename T, typename... Args>
