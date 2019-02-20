@@ -124,7 +124,7 @@ namespace mdk
 	{
 		template<typename T, typename RAW_T = remove_cvref_t<T>, typename = std::enable_if_t<!std::is_same_v<RAW_T, variant> > >
 		variant(T&& value)
-			: m_type_info(&detail::variant_operation_holder<RAW_T>::instance())
+			: m_type_info(&detail::variant_operation_holder<T>::instance())
 			, m_buffer(sizeof(RAW_T))
 		{
 			new (m_buffer) RAW_T(std::forward<RAW_T>(value));
