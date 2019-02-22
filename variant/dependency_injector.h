@@ -7,6 +7,7 @@
 #include <functional>
 #include <utility>
 #include <exception>
+#include <typeindex>
 
 namespace mdk
 {
@@ -37,14 +38,14 @@ namespace mdk
         template<typename T, typename... Args>
         std::pair<T&, bool> try_emplace(Args&&... args)
         {
-            const auto result = m_variants.emplace(&typeid(T), T(std::forward<Args>(args)...));
+            const auto result = m_variants.emplace(typeid(T), T(std::forward<Args>(args)...));
             return { result.first->second.template force_cast<T>(), result.second };
         }
 
         template<typename T>
         bool lazy_emplace(lazy_construct creator) noexcept
         {
-            const auto result = m_variants.emplace(&typeid(T), std::move(creator));
+            const auto result = m_variants.emplace(typeid(T), std::move(creator));
             return result.second;
         }
 
@@ -60,7 +61,7 @@ namespace mdk
         template<typename T>
         const T* force_get() const noexcept
         {
-            if (auto it = m_variants.find(&typeid(T)); it != std::end(m_variants))
+            if (auto it = m_variants.find(typeid(T)); it != std::end(m_variants))
                 return &it->second.force_cast<T>();
             return nullptr;
         }
@@ -68,7 +69,7 @@ namespace mdk
         template<typename T>
         const T* get()
         {
-            auto it = m_variants.find(&typeid(T));
+            auto it = m_variants.find(typeid(T));
             if (it == std::end(m_variants))
                 return nullptr;
 
@@ -81,6 +82,6 @@ namespace mdk
             return &v.force_cast<T>();
         }
     private:
-        std::unordered_map<const std::type_info*, variant> m_variants;
+        std::unordered_map<std::type_index, variant> m_variants;
     };
 }
